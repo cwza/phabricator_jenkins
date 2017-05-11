@@ -1,0 +1,60 @@
+version: '2'
+services:
+  mysql:
+    restart: always
+    image: mysql
+    volumes:
+     - ~/cwz/develop/docker/phabricator/mysql:/var/lib/mysql
+    environment:
+     - MYSQL_ROOT_PASSWORD=root
+  phabricator:
+    restart: always
+    image: phabricator
+    expose:
+     - "443"
+     - "80"
+     - "22"
+    ports:
+     - "443:443"
+     - "80:80"
+     - "22:22"
+    volumes:
+     - ~/cwz/develop/docker/phabricator/repos:/repos
+     - ~/cwz/develop/docker/phabricator/extensions:/srv/phabricator/phabricator/src/extensions
+     - ~/cwz/develop/docker/phabricator/hostkeys:/hostkeys
+     - ~/cwz/develop/docker/phabricator/containing/certs:/ssl
+    depends_on:
+     - mysql
+    links:
+     - mysql
+    environment:
+     - MYSQL_HOST=mysql
+     - MYSQL_USER=root
+     - MYSQL_PORT=3306
+     - MYSQL_PASS=root
+     - PHABRICATOR_REPOSITORY_PATH=/repos
+     - PHABRICATOR_HOST=myphabricator.com
+     - PHABRICATOR_HOST_KEYS_PATH=/hostkeys
+     - SSL_TYPE=manual
+     - SSL_CERTIFICATE=/ssl/cert.pem
+     - SSL_PRIVATE_KEY=/ssl/cert.key
+  jenkins:
+    restart: always
+    image: meepshop_jenkins
+    links:
+      - phabricator:myphabricator.com
+      - docker
+    expose:
+     - "8080"
+     - "50000"
+    ports:
+     - "8080:8080"
+     - "50000:50000"
+    volumes:
+     - ~/cwz/develop/docker/jenkins/:/var/jenkins_home
+  docker:
+    restart: always
+    image: docker:dind
+    privileged: true
+    expose: 
+     - "2375"
